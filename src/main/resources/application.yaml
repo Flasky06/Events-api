@@ -1,0 +1,49 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/assesment
+    username: postgres
+    password: bony
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: alex987morgan@gmail.com
+    password: dgrtuuuzqmpozwgn
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8080
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:myVerySecretKeyForLanguageAssessmentApp12345678901234567890}
+  expiration: 86400000 # 24 hours
+
+# App Configuration
+app:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:3000}
+  email:
+    from: ${FROM_EMAIL:noreply@language-assessment.com}
+
+# Logging Configuration - ONLY logging levels here!
+logging:
+  level:
+    com.tritva.assessment: DEBUG
+    org.springframework.security: DEBUG
