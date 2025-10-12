@@ -1,4 +1,4 @@
-package com.tritva.assessment.util;
+package com.tritva.Evently.util;
 
 
 import io.jsonwebtoken.*;

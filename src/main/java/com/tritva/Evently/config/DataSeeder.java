@@ -1,16 +1,14 @@
-package com.tritva.assessment.config;
+package com.tritva.Evently.config;
 
-import com.tritva.assessment.model.UserRole;
-import com.tritva.assessment.model.entity.User;
-import com.tritva.assessment.repository.UserRepository;
-import lombok.AllArgsConstructor;
+import com.tritva.Evently.model.Role;
+import com.tritva.Evently.model.entity.User;
+
+import com.tritva.Evently.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -33,7 +31,7 @@ public class DataSeeder implements CommandLineRunner {
                     .email(adminEmail)
                     .password(passwordEncoder.encode("admin123"))
                     .fullName("Bonface Njuguna ")
-                    .role(UserRole.ADMIN)
+                    .role(Role.ADMIN)
                     .emailVerified(true)
                     .build();
 

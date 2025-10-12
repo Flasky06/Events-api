@@ -1,9 +1,5 @@
-package com.tritva.assessment.config;
+package com.tritva.Evently.config;
 
-
-
-import com.tritva.assessment.repository.UserRepository;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -74,21 +70,29 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/api/auth/register").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/forgot-password").permitAll()
-                        .requestMatchers("/api/auth/reset-password").permitAll()
-                        .requestMatchers("/api/auth/verify-email").permitAll()
-                        .requestMatchers("/api/auth/resend-verification").permitAll()
-                        .requestMatchers("/api/auth/health").permitAll()
-                        .requestMatchers("/api/test-mail").permitAll()
+                        // Swagger & OpenAPI docs
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
 
+                        // Public auth endpoints
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
+                                "/api/auth/verify-email",
+                                "/api/auth/resend-verification",
+                                "/api/auth/health",
+                                "/api/test-mail"
+                        ).permitAll()
 
                         // Admin endpoints
                         .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
 
-                        // All other requests require authentication
+                        // Everything else requires JWT
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

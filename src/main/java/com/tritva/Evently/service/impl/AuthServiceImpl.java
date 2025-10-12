@@ -1,14 +1,14 @@
-package com.tritva.assessment.service.impl;
+package com.tritva.Evently.service.impl;
 
-import com.tritva.assessment.mapper.UserMapper;
-import com.tritva.assessment.model.UserRole;
-import com.tritva.assessment.model.dto.*;
-import com.tritva.assessment.model.entity.User;
-import com.tritva.assessment.repository.UserRepository;
-import com.tritva.assessment.service.AuthService;
-import com.tritva.assessment.service.EmailService;
-import com.tritva.assessment.util.JwtUtil;
-import org.springframework.transaction.annotation.Transactional;
+import com.tritva.Evently.mapper.UserMapper;
+import com.tritva.Evently.model.Role;
+import com.tritva.Evently.model.dto.*;
+import com.tritva.Evently.model.entity.User;
+import com.tritva.Evently.repository.UserRepository;
+import com.tritva.Evently.service.AuthService;
+import com.tritva.Evently.service.EmailService;
+import com.tritva.Evently.util.JwtUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -49,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
                     .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
             // Check if email is verified
-            if (!user.getEmailVerified()) {
+            if (Boolean.FALSE.equals(user.getEmailVerified())) {
                 throw new RuntimeException("Please verify your email before logging in. Check your inbox for verification email.");
             }
 
@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(registerDto.getEmail())
                 .password(passwordEncoder.encode(registerDto.getPassword()))
                 .fullName(registerDto.getFullName())
-                .role(UserRole.USER)
+                .role(Role.USER)
                 .emailVerified(false)
                 .verificationToken(UUID.randomUUID().toString())
                 .build();
@@ -132,7 +132,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
 
         // Check if token is expired
-        if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+        if (user.getResetTokenExpiry() != null && user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Reset token has expired. Please request a new password reset.");
         }
 
@@ -150,7 +150,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByVerificationToken(verifyEmailDto.getToken())
                 .orElseThrow(() -> new RuntimeException("Invalid or expired verification token"));
 
-        if (user.getEmailVerified()) {
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
             throw new RuntimeException("Email is already verified");
         }
 
@@ -166,7 +166,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(resendVerificationDto.getEmail())
                 .orElseThrow(() -> new RuntimeException("No account found with this email address"));
 
-        if (user.getEmailVerified()) {
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
             throw new RuntimeException("Email is already verified");
         }
 
@@ -188,7 +188,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public UserResponseDto getCurrentUserProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -196,7 +195,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<UserResponseDto> getAllUsers() {
         return userRepository.findAll()
                 .stream()
@@ -205,7 +203,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public UserResponseDto getUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -218,7 +215,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Update fields if provided
-        if (userUpdateDto.getFullName() != null) {
+        if (userUpdateDto.getFullName() != null && !userUpdateDto.getFullName().isBlank()) {
             user.setFullName(userUpdateDto.getFullName());
         }
 

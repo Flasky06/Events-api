@@ -1,8 +1,10 @@
-package com.tritva.assessment.controller;
+package com.tritva.Evently.controller;
 
-
-import com.tritva.assessment.model.dto.*;
-import com.tritva.assessment.service.AuthService;
+import com.tritva.Evently.model.dto.*;
+import com.tritva.Evently.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,244 +29,173 @@ public class AuthController {
 
     private final AuthService authService;
 
+    // USER REGISTRATION
+    @Operation(summary = "Register a new user", description = "Registers a user and sends an email verification link.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "User registered successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterDto registerDto,
                                       BindingResult result) {
-        try {
-            if (result.hasErrors()) {
-                Map<String, String> errors = result.getFieldErrors().stream()
-                        .collect(Collectors.toMap(
-                                error -> error.getField(),
-                                error -> error.getDefaultMessage(),
-                                (existing, replacement) -> existing
-                        ));
-                return ResponseEntity.badRequest().body(Map.of("errors", errors));
-            }
-
-            UserResponseDto user = authService.register(registerDto);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Registration successful! Please check your email to verify your account.");
-            response.put("user", user);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
-        } catch (RuntimeException e) {
-            log.error("Registration error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
+        if (result.hasErrors()) {
+            Map<String, String> errors = result.getFieldErrors().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getField(),
+                            e -> e.getDefaultMessage(),
+                            (existing, replacement) -> existing
+                    ));
+            return ResponseEntity.badRequest().body(Map.of("errors", errors));
         }
+
+        UserResponseDto user = authService.register(registerDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "success", true,
+                "message", "Registration successful! Please verify your email.",
+                "user", user
+        ));
     }
 
+    // LOGIN
+    @Operation(summary = "User login", description = "Authenticates user and returns JWT token on success.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login successful"),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody AuthDto authDto, BindingResult result) {
-        try {
-            if (result.hasErrors()) {
-                Map<String, String> errors = result.getFieldErrors().stream()
-                        .collect(Collectors.toMap(
-                                error -> error.getField(),
-                                error -> error.getDefaultMessage(),
-                                (existing, replacement) -> existing
-                        ));
-                return ResponseEntity.badRequest().body(Map.of("errors", errors));
-            }
-
-            AuthResponseDto response = authService.login(authDto);
-
-            Map<String, Object> loginResponse = new HashMap<>();
-            loginResponse.put("success", true);
-            loginResponse.put("message", "Login successful");
-            loginResponse.put("data", response);
-
-            return ResponseEntity.ok(loginResponse);
-
-        } catch (RuntimeException e) {
-            log.error("Login error: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
+        if (result.hasErrors()) {
+            Map<String, String> errors = result.getFieldErrors().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getField(),
+                            e -> e.getDefaultMessage(),
+                            (existing, replacement) -> existing
+                    ));
+            return ResponseEntity.badRequest().body(Map.of("errors", errors));
         }
+
+        AuthResponseDto response = authService.login(authDto);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Login successful",
+                "data", response
+        ));
     }
 
+    // PASSWORD MANAGEMENT
+    @Operation(summary = "Forgot password", description = "Sends a password reset email to the user.")
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@Valid
-                                                @RequestBody ForgotPasswordDto forgotPasswordDto) {
-        try {
-            authService.forgotPassword(forgotPasswordDto);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Password reset email sent. Please check your inbox and spam folder."
-            ));
-        } catch (RuntimeException e) {
-            log.error("Forgot password error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordDto forgotPasswordDto) {
+        authService.forgotPassword(forgotPasswordDto);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Password reset email sent. Please check your inbox."
+        ));
     }
 
+    @Operation(summary = "Reset password", description = "Resets user password after token verification.")
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordDto resetPasswordDto) {
-        try {
-            authService.resetPassword(resetPasswordDto);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Password reset successful. You can now login with your new password."
-            ));
-        } catch (RuntimeException e) {
-            log.error("Reset password error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+        authService.resetPassword(resetPasswordDto);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Password reset successful."
+        ));
     }
 
+    // EMAIL VERIFICATION
+    @Operation(summary = "Verify email", description = "Verifies user email using verification code.")
     @PostMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@Valid @RequestBody VerifyEmailDto verifyEmailDto) {
-        try {
-            authService.verifyEmail(verifyEmailDto);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Email verified successfully! You can now login."
-            ));
-        } catch (RuntimeException e) {
-            log.error("Email verification error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+        authService.verifyEmail(verifyEmailDto);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Email verified successfully!"
+        ));
     }
 
+    @Operation(summary = "Resend verification email", description = "Resends verification link to the user's email.")
     @PostMapping("/resend-verification")
-    public ResponseEntity<?> resendVerificationEmail(@Valid @RequestBody ResendVerificationDto resendVerificationDto) {
-        try {
-            authService.resendVerificationEmail(resendVerificationDto);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Verification email sent. Please check your inbox and spam folder."
-            ));
-        } catch (RuntimeException e) {
-            log.error("Resend verification error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+    public ResponseEntity<?> resendVerification(@Valid @RequestBody ResendVerificationDto dto) {
+        authService.resendVerificationEmail(dto);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Verification email sent again."
+        ));
     }
 
-    // Profile endpoint for current user
-    @GetMapping("/profile")
+    // USER PROFILE
+    @Operation(summary = "Get current user profile", description = "Fetches details of the currently logged-in user.")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<?> getCurrentUserProfile() {
-        try {
-            // This would need SecurityContext to get current user
-            // For now, return placeholder
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Profile retrieved successfully"
-            ));
-        } catch (RuntimeException e) {
-            log.error("Get profile error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile() {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Profile retrieved successfully"
+        ));
     }
 
-    // Admin endpoints
+    // ADMIN: USER MANAGEMENT
+    @Operation(summary = "List all users", description = "Fetches all registered users (admin only).")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/users")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllUsers() {
-        try {
-            List<UserResponseDto> users = authService.getAllUsers();
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Users retrieved successfully",
-                    "data", users,
-                    "count", users.size()
-            ));
-        } catch (RuntimeException e) {
-            log.error("Get all users error: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+        List<UserResponseDto> users = authService.getAllUsers();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Users retrieved successfully",
+                "count", users.size(),
+                "data", users
+        ));
     }
 
+    @Operation(summary = "Get user by ID", description = "Fetch a specific user by ID (admin only).")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/users/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUser(@PathVariable UUID userId) {
-        try {
-            UserResponseDto user = authService.getUser(userId);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "User retrieved successfully",
-                    "data", user
-            ));
-        } catch (RuntimeException e) {
-            log.error("Get user error: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+        UserResponseDto user = authService.getUser(userId);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "User retrieved successfully",
+                "data", user
+        ));
     }
 
-    @PutMapping("/admin/users/{userId}")
+    @Operation(summary = "Update user", description = "Updates a user's information (admin only).")
     @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/admin/users/{userId}")
     public ResponseEntity<?> updateUser(
             @PathVariable UUID userId,
             @Valid @RequestBody UpdateUserDto updateUserDto) {
-        try {
-            UserResponseDto updatedUser = authService.updateUser(userId, updateUserDto);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "User updated successfully",
-                    "data", updatedUser
-            ));
-        } catch (RuntimeException e) {
-            log.error("Update user error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+        UserResponseDto updatedUser = authService.updateUser(userId, updateUserDto);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "User updated successfully",
+                "data", updatedUser
+        ));
     }
 
-    @DeleteMapping("/admin/users/{userId}")
+    @Operation(summary = "Delete user", description = "Deletes a user by ID (admin only).")
     @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/admin/users/{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable UUID userId) {
-        try {
-            authService.deleteUser(userId);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "User deleted successfully"
-            ));
-        } catch (RuntimeException e) {
-            log.error("Delete user error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
+        authService.deleteUser(userId);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "User deleted successfully"
+        ));
     }
 
-    // Health check endpoint
+    // ======================
+    // HEALTH CHECK
+    // ======================
+    @Operation(summary = "Health check", description = "Checks the status of the authentication service.")
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> healthCheck() {
-        Map<String, Object> health = new HashMap<>();
-        health.put("status", "UP");
-        health.put("service", "Language Assessment Auth Service");
-        health.put("timestamp", System.currentTimeMillis());
-        return ResponseEntity.ok(health);
+        return ResponseEntity.ok(Map.of(
+                "status", "UP",
+                "service", "Evently Auth Service",
+                "timestamp", System.currentTimeMillis()
+        ));
     }
 }

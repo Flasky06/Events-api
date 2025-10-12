@@ -1,7 +1,7 @@
-package com.tritva.assessment.config;
+package com.tritva.Evently.config;
 
-import com.tritva.assessment.model.entity.User;
-import com.tritva.assessment.repository.UserRepository;
+import com.tritva.Evently.model.entity.User;
+import com.tritva.Evently.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -68,7 +68,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         @Override
         public boolean isEnabled() {
-            return user.getEmailVerified();
+            // Null-safe check: returns true only if emailVerified is explicitly true
+            return Boolean.TRUE.equals(user.getEmailVerified());
         }
 
         public User getUser() {

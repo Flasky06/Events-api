@@ -1,10 +1,10 @@
-package com.tritva.assessment;
+package com.tritva.Evently;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class LocalServeApplicationTests {
+class EventlyApplicationTests {
 
 	@Test
 	void contextLoads() {

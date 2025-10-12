@@ -1,15 +1,13 @@
-package com.tritva.assessment.model.entity;
+package com.tritva.Evently.model.entity;
 
-import com.tritva.assessment.model.UserRole;
+import com.tritva.Evently.model.Role;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -30,30 +28,40 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(name = "first_name")
+    @Column(nullable = false)
     private String fullName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserRole role;
+    private Role role;
 
-    @Column(name = "email_verified", nullable = false)
+    @Column(nullable = false)
     private Boolean emailVerified = false;
 
-    @Column(name = "verification_token")
+    @Column
     private String verificationToken;
 
-    @Column(name = "reset_token")
+    @Column
     private String resetToken;
 
-    @Column(name = "reset_token_expiry")
+    @Column
     private LocalDateTime resetTokenExpiry;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+
+    @OneToMany(mappedBy = "organiser", cascade = CascadeType.ALL)
+    private Set<Event> organisedEvents = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private Set<Ticket> purchasedTickets = new HashSet<>();
 }

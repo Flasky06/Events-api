@@ -1,6 +1,6 @@
-package com.tritva.assessment.model.dto;
+package com.tritva.Evently.model.dto;
 
-import com.tritva.assessment.model.UserRole;
+import com.tritva.Evently.model.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,7 +13,7 @@ import java.util.UUID;
 public class AuthResponseDto {
     private String token;
     private String email;
-    private UserRole role;
+    private Role role;
     private UUID userId;
     private String message;
 }

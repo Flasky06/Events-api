@@ -1,6 +1,5 @@
-package com.tritva.assessment.model.dto;
-
-import com.tritva.assessment.model.UserRole;
+package com.tritva.Evently.model.dto;
+import com.tritva.Evently.model.Role;
 import lombok.Data;
 
 import java.util.UUID;
@@ -17,7 +16,7 @@ public class UserResponseDto {
     private String sirName;
     private String nationality;
 
-    private UserRole role;
+    private Role role;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

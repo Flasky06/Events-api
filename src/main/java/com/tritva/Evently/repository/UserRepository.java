@@ -1,6 +1,6 @@
-package com.tritva.assessment.repository;
+package com.tritva.Evently.repository;
 
-import com.tritva.assessment.model.entity.User;
+import com.tritva.Evently.model.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

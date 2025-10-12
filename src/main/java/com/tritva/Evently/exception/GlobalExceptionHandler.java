@@ -1,4 +1,4 @@
-package com.tritva.assessment.exception;
+package com.tritva.Evently.exception;
 
 
 

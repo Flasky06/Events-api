@@ -1,4 +1,5 @@
-package com.tritva.assessment.model.dto;
+package com.tritva.Evently.model.dto;
+
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

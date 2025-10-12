@@ -1,37 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.6</version>
-		<relativePath/>
-	</parent>
-	<groupId>com.tritva</groupId>
-	<artifactId>Evently</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>LocalServe</name>
-	<description>Events Ticketing App</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/>
+    </parent>
+    <groupId>com.tritva</groupId>
+    <artifactId>Evently</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>Evently</name>
+    <description>Events Ticketing App</description>
+    <url/>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection/>
+        <developerConnection/>
+        <tag/>
+        <url/>
+    </scm>
     <properties>
         <java.version>21</java.version>
         <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
         <lombok.version>1.18.38</lombok.version>
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version> <!-- Explicit version for compiler plugin -->
-        <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version> <!-- Added this property -->
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
+        <springdoc.version>2.3.0</springdoc.version>
+        <swagger.version>2.2.20</swagger.version>
+        <zxing.version>3.5.3</zxing.version>
     </properties>
     <dependencies>
         <dependency>
@@ -79,7 +82,7 @@
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct-processor</artifactId>
             <version>${org.mapstruct.version}</version>
-            <scope>provided</scope> <!-- Important for processor -->
+            <scope>provided</scope>
         </dependency>
 
         <!-- Lombok -->
@@ -87,14 +90,14 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
-            <scope>provided</scope> <!-- Correct scope -->
+            <scope>provided</scope>
         </dependency>
         <!-- Lombok-MapStruct Binding (for MapStruct to see Lombok-generated methods) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok-mapstruct-binding</artifactId>
             <version>${lombok.mapstruct.binding.version}</version>
-            <scope>provided</scope> <!-- Important for processor -->
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -114,6 +117,30 @@
             <version>0.11.5</version>
             <scope>runtime</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -1,6 +1,7 @@
-package com.tritva.assessment.service;
+package com.tritva.Evently.service;
 
-import com.tritva.assessment.model.dto.*;
+
+import com.tritva.Evently.model.dto.*;
 
 import java.util.List;
 import java.util.UUID;

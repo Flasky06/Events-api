@@ -1,4 +1,4 @@
-package com.tritva.assessment.controller;
+package com.tritva.Evently.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;

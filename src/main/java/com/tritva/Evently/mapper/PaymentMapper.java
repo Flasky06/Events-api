@@ -1,0 +1,13 @@
+package com.tritva.Evently.mapper;
+
+import com.tritva.Evently.model.dto.PaymentDto;
+import com.tritva.Evently.model.entity.Payment;
+import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface PaymentMapper {
+    PaymentDto toDto(Payment payment);
+    Payment toEntity(PaymentDto paymentDto);
+}
+

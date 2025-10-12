@@ -7,13 +7,12 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-
 
   mail:
     host: smtp.gmail.com
@@ -42,7 +41,17 @@ app:
   email:
     from: ${FROM_EMAIL:noreply@language-assessment.com}
 
-# Logging Configuration - ONLY logging levels here!
+# M-Pesa Configuration
+mpesa:
+  consumer:
+    key: ${MPESA_CONSUMER_KEY:your_consumer_key}
+    secret: ${MPESA_CONSUMER_SECRET:your_consumer_secret}
+  shortcode: ${MPESA_SHORTCODE:174379}
+  passkey: ${MPESA_PASSKEY:bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919}
+  callback:
+    url: ${MPESA_CALLBACK_URL:https://yourdomain.com/api/mpesa/callback}
+
+# Logging Configuration
 logging:
   level:
     com.tritva.assessment: DEBUG

@@ -1,6 +1,6 @@
-package com.tritva.assessment.config;
+package com.tritva.Evently.config;
 
-import com.tritva.assessment.util.JwtUtil;
+import com.tritva.Evently.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
