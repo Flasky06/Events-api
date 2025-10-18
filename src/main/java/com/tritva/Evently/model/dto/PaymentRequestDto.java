@@ -7,12 +7,11 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class MpesaPaymentRequestDto {
-    private String phone;
-    private BigDecimal amount;
+public class PaymentRequestDto {
     private UUID eventId;
-    private UUID userId;
+    private BigDecimal amount;
+    private String phoneNumber;
 }

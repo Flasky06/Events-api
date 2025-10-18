@@ -1,79 +1,83 @@
 package com.tritva.Evently.controller;
 
-import com.tritva.Evently.model.Status;
+import com.tritva.Evently.model.dto.MpesaPaymentResponseDto;
 import com.tritva.Evently.model.dto.PaymentDto;
-import com.tritva.Evently.model.entity.Payment;
+import com.tritva.Evently.model.dto.PaymentRequestDto;
+import com.tritva.Evently.model.entity.User;
+import com.tritva.Evently.repository.UserRepository;
 import com.tritva.Evently.service.MpesaService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.tritva.Evently.service.PaymentNotificationService;
+import com.tritva.Evently.service.PaymentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/payments")
+@RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Payments", description = "Handles M-Pesa and general payment operations")
 public class PaymentController {
 
+    private final PaymentService paymentService;
     private final MpesaService mpesaService;
+    private final UserRepository userRepository;
+    private final PaymentNotificationService notificationService;
 
-    @Operation(summary = "Initiate an M-Pesa STK push")
-    @PostMapping("/mpesa/initiate")
-    public ResponseEntity<PaymentDto> initiateMpesaPayment(
-            @RequestParam UUID userId,
-            @RequestParam UUID eventId,
-            @RequestParam double amount,
-            @RequestParam String phoneNumber
-    ) {
-        PaymentDto payment = mpesaService.initiateStkPush(userId, eventId, amount, phoneNumber);
+    @PostMapping("/initiate")
+    public ResponseEntity<MpesaPaymentResponseDto> initiatePayment(
+            @Valid @RequestBody PaymentRequestDto request,
+            Authentication authentication) {
+
+        // Get logged-in user's email
+        String email = authentication.getName();
+
+        // Fetch user by email to get their UUID
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        log.info("Payment initiated by user: {} ({})", email, user.getId());
+
+        MpesaPaymentResponseDto response = paymentService.initiatePayment(request, user.getId());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{paymentId}")
+    public ResponseEntity<PaymentDto> getPayment(@PathVariable UUID paymentId) {
+        PaymentDto payment = paymentService.getPaymentById(paymentId);
         return ResponseEntity.ok(payment);
     }
 
-    @Operation(summary = "Get payment details by transaction ID")
-    @GetMapping("/{transactionId}")
-    public ResponseEntity<?> getPaymentByTransactionId(@PathVariable String transactionId) {
-        Optional<Payment> optionalPayment = mpesaService.getPaymentByTransactionId(transactionId);
+    @GetMapping("/status/{checkoutRequestId}")
+    public ResponseEntity<PaymentDto> checkPaymentStatus(@PathVariable String checkoutRequestId) {
+        PaymentDto payment = paymentService.checkPaymentStatus(checkoutRequestId);
+        return ResponseEntity.ok(payment);
+    }
 
-        if (optionalPayment.isEmpty()) {
-            return ResponseEntity.notFound().build();
+    @GetMapping("/subscribe/{checkoutRequestId}")
+    public SseEmitter subscribeToPaymentUpdates(@PathVariable String checkoutRequestId) {
+        log.info("Client subscribing to payment updates for: {}", checkoutRequestId);
+        return notificationService.createEmitter(checkoutRequestId);
+    }
+
+    @PostMapping("/callback")
+    public ResponseEntity<Map<String, String>> mpesaCallback(@RequestBody String callbackData) {
+        log.info("M-Pesa callback received: {}", callbackData);
+
+        try {
+            mpesaService.processCallback(callbackData);
+            return ResponseEntity.ok(Map.of("ResultCode", "0", "ResultDesc", "Success"));
+        } catch (Exception e) {
+            log.error("Error processing callback", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("ResultCode", "1", "ResultDesc", "Failed"));
         }
-
-        Payment payment = optionalPayment.get();
-
-        PaymentDto dto = PaymentDto.builder()
-                .id(payment.getId())
-                .eventId(payment.getEvent().getId())
-                .userId(payment.getUser() != null ? payment.getUser().getId() : null)
-                .amount(payment.getAmount())
-                .paymentMethod(payment.getPaymentMethod())
-                .transactionId(payment.getTransactionId())
-                .status(payment.getStatus())
-                .build();
-
-        return ResponseEntity.ok(dto);
-    }
-
-    @Operation(summary = "Update payment status (e.g., after callback verification)")
-    @PutMapping("/{transactionId}/status")
-    public ResponseEntity<?> updatePaymentStatus(
-            @PathVariable String transactionId,
-            @RequestParam Status status
-    ) {
-        mpesaService.updatePaymentStatus(transactionId, status);
-        return ResponseEntity.ok("Payment status updated successfully");
-    }
-
-    @Operation(summary = "M-Pesa callback endpoint")
-    @PostMapping("/mpesa/callback")
-    public ResponseEntity<String> handleMpesaCallback(@RequestBody Object callbackData) {
-        log.info("Received M-Pesa Callback: {}", callbackData);
-        // You can parse callbackData here to update payment status
-        return ResponseEntity.ok("Callback received successfully");
     }
 }

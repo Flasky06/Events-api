@@ -96,7 +96,6 @@ public class AuthServiceImpl implements AuthService {
             emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerificationToken());
         } catch (Exception e) {
             log.error("Failed to send verification email during registration", e);
-            // Don't fail registration if email fails
         }
 
         log.info("New user registered: {}", savedUser.getEmail());

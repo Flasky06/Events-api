@@ -67,17 +67,17 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Swagger & OpenAPI docs
+
+                        // Swagger docs (open)
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
 
-                        // Public auth endpoints
+                        // Auth endpoints (open)
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
@@ -88,6 +88,13 @@ public class SecurityConfig {
                                 "/api/auth/health",
                                 "/api/test-mail"
                         ).permitAll()
+
+                        // Public endpoints for browsing
+                        .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/tickets/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/tickets/**").permitAll()
+                        .requestMatchers("/api/payments/**").permitAll()
 
                         // Admin endpoints
                         .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")

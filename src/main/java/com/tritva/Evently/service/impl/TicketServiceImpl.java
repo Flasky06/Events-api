@@ -1,22 +1,38 @@
 package com.tritva.Evently.service.impl;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import com.tritva.Evently.mapper.EventMapper;
 import com.tritva.Evently.mapper.TicketMapper;
 import com.tritva.Evently.mapper.UserMapper;
 import com.tritva.Evently.model.dto.TicketDto;
+import com.tritva.Evently.model.dto.TicketRequestDto;
 import com.tritva.Evently.model.entity.Event;
+import com.tritva.Evently.model.entity.Payment;
 import com.tritva.Evently.model.entity.Ticket;
 import com.tritva.Evently.model.entity.User;
 import com.tritva.Evently.repository.EventRepository;
+import com.tritva.Evently.repository.PaymentRepository;
 import com.tritva.Evently.repository.TicketRepository;
 import com.tritva.Evently.repository.UserRepository;
+import com.tritva.Evently.service.EmailService;
 import com.tritva.Evently.service.TicketService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,9 +44,14 @@ public class TicketServiceImpl implements TicketService {
     private final TicketRepository ticketRepository;
     private final TicketMapper ticketMapper;
     private final UserRepository userRepository;
-    private  final UserMapper userMapper;
-    private  final EventRepository eventRepository;
+    private final UserMapper userMapper;
+    private final EventRepository eventRepository;
     private final EventMapper eventMapper;
+    private final PaymentRepository paymentRepository;
+    private final EmailService emailService;
+
+    @Value("${app.qr.storage.path:qrcodes}")
+    private String qrStoragePath;
 
     @Override
     public TicketDto createTicket(TicketDto ticketDto) {
@@ -54,60 +75,110 @@ public class TicketServiceImpl implements TicketService {
         ticket.setUser(user);
         ticket.setEvent(event);
 
+        // Generate ticket number and verification code
+        ticket.setTicketNumber(generateTicketNumber());
+        ticket.setVerificationCode(generateVerificationCode());
+
         // Save ticket
         Ticket savedTicket = ticketRepository.save(ticket);
+
+        // Generate QR code
+        generateQRCode(savedTicket.getId());
 
         // Return mapped DTO
         return ticketMapper.toDto(savedTicket);
     }
 
+    @Override
+    public TicketDto createTicketAfterPayment(TicketRequestDto request, String email) {
+        log.info("Creating ticket after payment for event {}", request.getEventId());
 
+        // Fetch event
+        Event event = eventRepository.findById(request.getEventId())
+                .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + request.getEventId()));
+
+        // Check event capacity
+        long ticketsSold = ticketRepository.countByEventId(event.getId());
+        if (ticketsSold >= event.getCapacity()) {
+            throw new RuntimeException("Tickets for this event are sold out!");
+        }
+
+        // Fetch user if userId is provided
+        User user = null;
+        if (request.getUserId() != null) {
+            user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + request.getUserId()));
+        }
+
+        // Fetch payment if paymentId is provided
+        Payment payment = null;
+        if (request.getPaymentId() != null) {
+            payment = paymentRepository.findById(request.getPaymentId())
+                    .orElseThrow(() -> new EntityNotFoundException("Payment not found with ID: " + request.getPaymentId()));
+        }
+
+        // Create ticket
+        Ticket ticket = Ticket.builder()
+                .event(event)
+                .user(user)
+                .payment(payment)
+                .price(request.getPrice())
+                .ticketNumber(generateTicketNumber())
+                .verificationCode(generateVerificationCode())
+                .checkedIn(false)
+                .build();
+
+        // Save ticket
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        // Generate QR code
+        String qrCodeUrl = generateQRCode(savedTicket.getId());
+        savedTicket.setQrCodeUrl(qrCodeUrl);
+        ticketRepository.save(savedTicket);
+
+        // Send ticket via email
+        emailService.sendTicketEmail(email, savedTicket);
+
+        log.info("Ticket created successfully with number: {}", savedTicket.getTicketNumber());
+
+        return ticketMapper.toDto(savedTicket);
+    }
 
     @Override
     public TicketDto getTicketById(UUID id) {
-        // Try to find the ticket
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with ID: " + id));
 
-        // Log the result for debugging
         log.info("Fetched ticket {} for event {} by user {}",
                 ticket.getTicketNumber(),
                 ticket.getEvent().getName(),
-                ticket.getUser().getFullName());
+                ticket.getUser() != null ? ticket.getUser().getFullName() : "Guest");
 
-        // Map to DTO and return
         return ticketMapper.toDto(ticket);
     }
-
 
     @Override
     public List<TicketDto> getTicketsByUser(UUID userId) {
         log.info("Fetching tickets for user {}", userId);
 
-        // Check if user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
 
-        // Fetch tickets belonging to the user
-        List<Ticket> tickets = ticketRepository.findByUser(user);
+        List<Ticket> tickets = ticketRepository.findByUserId(userId);
 
-        // Map to DTO list and return
         return tickets.stream()
                 .map(ticketMapper::toDto)
                 .toList();
     }
 
-
     @Override
     public List<TicketDto> getTicketsByEvent(UUID eventId) {
         log.info("Fetching tickets for Event {}", eventId);
 
-        // Check if Event exists
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + eventId));
 
-        // Fetch tickets belonging to the Event
-        List<Ticket> tickets = ticketRepository.findByEvent(event);
+        List<Ticket> tickets = ticketRepository.findByEventId(eventId);
 
         return tickets.stream()
                 .map(ticketMapper::toDto)
@@ -118,14 +189,56 @@ public class TicketServiceImpl implements TicketService {
     public void deleteTicket(UUID id) {
         log.info("Deleting ticket with ID: {}", id);
 
-        // Check if ticket exists
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with ID: " + id));
 
-        // Delete the ticket
         ticketRepository.delete(ticket);
 
         log.info("Ticket {} deleted successfully", id);
     }
 
+    @Override
+    public String generateQRCode(UUID ticketId) {
+        try {
+            Ticket ticket = ticketRepository.findById(ticketId)
+                    .orElseThrow(() -> new EntityNotFoundException("Ticket not found"));
+
+            // QR code content: ticket verification URL
+            String qrContent = String.format("TICKET:%s:CODE:%s",
+                    ticket.getTicketNumber(),
+                    ticket.getVerificationCode());
+
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrCodeWriter.encode(qrContent, BarcodeFormat.QR_CODE, 300, 300);
+
+            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+
+            // Convert to Base64
+            String base64QR = Base64.getEncoder().encodeToString(pngOutputStream.toByteArray());
+            String qrCodeUrl = "data:image/png;base64," + base64QR;
+
+            // Update ticket with QR code URL
+            ticket.setQrCodeUrl(qrCodeUrl);
+            ticketRepository.save(ticket);
+
+            log.info("QR code generated for ticket: {}", ticket.getTicketNumber());
+
+            return qrCodeUrl;
+
+        } catch (Exception e) {
+            log.error("Error generating QR code", e);
+            throw new RuntimeException("Failed to generate QR code: " + e.getMessage());
+        }
+    }
+
+    private String generateTicketNumber() {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String random = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        return "TKT-" + timestamp + "-" + random;
+    }
+
+    private String generateVerificationCode() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+    }
 }

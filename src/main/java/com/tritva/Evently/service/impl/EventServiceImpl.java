@@ -13,6 +13,7 @@ import com.tritva.Evently.service.EventService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,19 +29,29 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
 
     @Override
-    public EventResponseDto createEvent(CreateEventDto dto) {
-        User organiser = userRepository.findById(dto.getOrganiserId())
+    @Transactional
+    public EventResponseDto createEvent(CreateEventDto dto, UUID organiserId) {
+        // Fetch organiser
+        User organiser = userRepository.findById(organiserId)
                 .orElseThrow(() -> new EntityNotFoundException("Organiser not found"));
 
+        // Fetch category
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category not found"));
 
+        // Validate dates
+        if (dto.getEndDateTime().isBefore(dto.getStartDateTime())) {
+            throw new IllegalArgumentException("End date must be after start date");
+        }
+
+        // Map DTO to entity
         Event event = eventMapper.toEntity(dto);
         event.setOrganiser(organiser);
         event.setCategory(category);
 
-        Event saved = eventRepository.save(event);
-        return eventMapper.toDto(saved);
+        // Save event
+        Event savedEvent = eventRepository.save(event);
+        return eventMapper.toDto(savedEvent);
     }
 
     @Override
@@ -58,16 +69,26 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventResponseDto updateEvent(UUID id, CreateEventDto dto) {
+    @Transactional
+    public EventResponseDto updateEvent(UUID id, CreateEventDto dto, UUID organiserId) {
+        // Fetch existing event
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found"));
 
+        // Fetch category
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category not found"));
 
-        User organiser = userRepository.findById(dto.getOrganiserId())
+        // Fetch organiser
+        User organiser = userRepository.findById(organiserId)
                 .orElseThrow(() -> new EntityNotFoundException("Organiser not found"));
 
+        // Validate dates
+        if (dto.getEndDateTime().isBefore(dto.getStartDateTime())) {
+            throw new IllegalArgumentException("End date must be after start date");
+        }
+
+        // Update event fields
         event.setName(dto.getName());
         event.setDescription(dto.getDescription());
         event.setLocation(dto.getLocation());
@@ -80,11 +101,13 @@ public class EventServiceImpl implements EventService {
         event.setOrganiser(organiser);
         event.setCapacity(dto.getCapacity());
 
-        Event updated = eventRepository.save(event);
-        return eventMapper.toDto(updated);
+        // Save updated event
+        Event updatedEvent = eventRepository.save(event);
+        return eventMapper.toDto(updatedEvent);
     }
 
     @Override
+    @Transactional
     public void deleteEvent(UUID id) {
         if (!eventRepository.existsById(id)) {
             throw new EntityNotFoundException("Event not found");

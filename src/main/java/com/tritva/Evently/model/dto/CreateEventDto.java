@@ -1,7 +1,6 @@
 package com.tritva.Evently.model.dto;
 
 import com.tritva.Evently.model.Role;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,9 +31,6 @@ public class CreateEventDto {
     @NotBlank(message = "Image URL is required")
     private String imageUrl;
 
-    @NotNull(message = "Role is required")
-    private Role role;
-
     @NotNull(message = "Start date and time is required")
     @Future(message = "Start date must be in the future")
     private LocalDateTime startDateTime;
@@ -43,11 +39,9 @@ public class CreateEventDto {
     @Future(message = "End date must be in the future")
     private LocalDateTime endDateTime;
 
-    @NotNull(message = "Organiser ID is required")
-    private UUID organiserId;
-
     @NotNull(message = "Category ID is required")
     private UUID categoryId;
 
+    @Min(value = 1, message = "Capacity must be at least 1")
     private int capacity;
 }

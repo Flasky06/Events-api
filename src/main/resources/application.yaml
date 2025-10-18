@@ -39,20 +39,23 @@ app:
   frontend:
     url: ${FRONTEND_URL:http://localhost:3000}
   email:
-    from: ${FROM_EMAIL:noreply@language-assessment.com}
+    from: ${FROM_EMAIL:noreply@evently.com}
+  qr:
+    storage:
+      path: ${QR_STORAGE_PATH:qrcodes}
 
 # M-Pesa Configuration
 mpesa:
-  consumer:
-    key: ${MPESA_CONSUMER_KEY:your_consumer_key}
-    secret: ${MPESA_CONSUMER_SECRET:your_consumer_secret}
-  shortcode: ${MPESA_SHORTCODE:174379}
+  consumer-key: ${MPESA_CONSUMER_KEY:HjntiegXwSP2D73ReLzEcrk5dv0bU9VpD9GVGPKS7lLIYlsL}
+  consumer-secret: ${MPESA_CONSUMER_SECRET:S3lA121fSfTu8B1cMTHv0eZGO9IaahAEFzFnUbMuM0L0uGx9vzUAlzfoA1gG8JE7}
+  short-code: ${MPESA_SHORTCODE:174379}
   passkey: ${MPESA_PASSKEY:bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919}
-  callback:
-    url: ${MPESA_CALLBACK_URL:https://yourdomain.com/api/mpesa/callback}
+  callback-url: ${MPESA_CALLBACK_URL:https://5b06ed28d62e.ngrok-free.app/api/payments/callback}
+  api-url: ${MPESA_API_URL:https://sandbox.safaricom.co.ke}
+  oauth-url: ${MPESA_OAUTH_URL:https://sandbox.safaricom.co.ke}
 
 # Logging Configuration
 logging:
   level:
-    com.tritva.assessment: DEBUG
+    com.tritva.Evently: DEBUG
     org.springframework.security: DEBUG

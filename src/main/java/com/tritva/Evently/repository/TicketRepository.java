@@ -1,23 +1,25 @@
 package com.tritva.Evently.repository;
 
-import com.tritva.Evently.model.entity.Event;
 import com.tritva.Evently.model.entity.Ticket;
-import com.tritva.Evently.model.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+@Repository
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
-    // Find all tickets for a specific event
-    List<Ticket> findByEvent(Event event);
 
-    // Find tickets for a specific event and user
-    List<Ticket> findByEventAndUser(Event event, User user);
+    List<Ticket> findByUserId(UUID userId);
 
-    // Get all tickets purchased by a specific user
-    List<Ticket> findByUser(User user);
+    List<Ticket> findByEventId(UUID eventId);
 
-    // Count tickets sold for one event
+    Optional<Ticket> findByVerificationCode(String verificationCode);
+
+    Optional<Ticket> findByTicketNumber(String ticketNumber);
+
+    boolean existsByPaymentId(UUID paymentId);
+
     long countByEventId(UUID eventId);
 }

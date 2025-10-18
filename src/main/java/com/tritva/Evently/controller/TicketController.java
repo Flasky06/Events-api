@@ -1,69 +1,101 @@
 package com.tritva.Evently.controller;
 
-
+import com.tritva.Evently.model.dto.MpesaPaymentResponseDto;
 import com.tritva.Evently.model.dto.TicketDto;
+import com.tritva.Evently.model.dto.TicketPurchaseRequestDto;
+import com.tritva.Evently.model.entity.User;
+import com.tritva.Evently.repository.UserRepository;
+import com.tritva.Evently.service.TicketPurchaseService;
 import com.tritva.Evently.service.TicketService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/tickets")
+@RequiredArgsConstructor
+@Slf4j
 public class TicketController {
 
     private final TicketService ticketService;
+    private final TicketPurchaseService ticketPurchaseService;
+    private final UserRepository userRepository;
 
-    @Operation(summary = "Buy a ticket", description = "Allows a user to buy a ticket for a specific event.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Ticket purchased successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid ticket data or event capacity exceeded"),
-            @ApiResponse(responseCode = "404", description = "User or event not found")
-    })
     @PostMapping
-    public ResponseEntity<TicketDto> createTicket(@Valid @RequestBody TicketDto ticketDto) {
+    public ResponseEntity<TicketDto> createTicket(
+            @Valid @RequestBody TicketDto ticketDto) {
         TicketDto createdTicket = ticketService.createTicket(ticketDto);
-        return ResponseEntity.ok(createdTicket);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdTicket);
     }
 
-    @Operation(summary = "Get ticket by ID", description = "Fetches details of a single ticket by its ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Ticket found successfully"),
-            @ApiResponse(responseCode = "404", description = "Ticket not found")
-    })
+    @PostMapping("/purchase")
+    public ResponseEntity<MpesaPaymentResponseDto> purchaseTicket(
+            @Valid @RequestBody TicketPurchaseRequestDto request,
+            Authentication authentication) {
+
+        // Get logged-in user's email
+        String email = authentication.getName();
+
+        // Fetch user by email to get their UUID
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        log.info("Ticket purchase initiated by user: {} ({})", email, user.getId());
+
+        // Set the user ID from authenticated user
+        request.setUserId(user.getId());
+
+        MpesaPaymentResponseDto response = ticketPurchaseService.purchaseTicket(request);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<TicketDto> getTicketById(@PathVariable UUID id) {
         TicketDto ticket = ticketService.getTicketById(id);
         return ResponseEntity.ok(ticket);
     }
 
-    @Operation(summary = "Get user tickets", description = "Fetches all tickets purchased by a given user.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Tickets retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "No tickets found for the given user")
-    })
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<TicketDto>> getTicketsByUser(@PathVariable UUID userId) {
         List<TicketDto> tickets = ticketService.getTicketsByUser(userId);
         return ResponseEntity.ok(tickets);
     }
 
-    @Operation(summary = "Delete a ticket", description = "Deletes a ticket by its ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Ticket deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "Ticket not found")
-    })
+    @GetMapping("/my-tickets")
+    public ResponseEntity<List<TicketDto>> getMyTickets(Authentication authentication) {
+        // Get logged-in user's email
+        String email = authentication.getName();
+
+        // Fetch user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<TicketDto> tickets = ticketService.getTicketsByUser(user.getId());
+        return ResponseEntity.ok(tickets);
+    }
+
+    @GetMapping("/event/{eventId}")
+    public ResponseEntity<List<TicketDto>> getTicketsByEvent(@PathVariable UUID eventId) {
+        List<TicketDto> tickets = ticketService.getTicketsByEvent(eventId);
+        return ResponseEntity.ok(tickets);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTicket(@PathVariable UUID id) {
         ticketService.deleteTicket(id);
         return ResponseEntity.noContent().build();
     }
-}
 
+    @GetMapping("/{id}/qr")
+    public ResponseEntity<String> getTicketQRCode(@PathVariable UUID id) {
+        String qrCode = ticketService.generateQRCode(id);
+        return ResponseEntity.ok(qrCode);
+    }
+}
