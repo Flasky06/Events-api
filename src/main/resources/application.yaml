@@ -37,7 +37,7 @@ jwt:
 # App Configuration
 app:
   frontend:
-    url: ${FRONTEND_URL:http://localhost:3000}
+    url: ${FRONTEND_URL:http://localhost:5173}
   email:
     from: ${FROM_EMAIL:noreply@evently.com}
   qr:

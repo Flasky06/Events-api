@@ -20,7 +20,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${app.frontend.url:http://localhost:3000}")
+    @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
     @Value("${app.email.from:noreply@evently.com}")
@@ -156,7 +156,7 @@ public class EmailService {
                         </div>
 
                         <div class="ticket-info">
-                            <p class="important">⚠️ IMPORTANT INFORMATION:</p>
+                            <p class="important">IMPORTANT INFORMATION:</p>
                             <ul>
                                 <li>Save this email or take a screenshot of the QR code</li>
                                 <li>Arrive at least 30 minutes before the event starts</li>

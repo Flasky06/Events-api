@@ -27,9 +27,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
@@ -54,7 +51,7 @@ public class TicketServiceImpl implements TicketService {
     private String qrStoragePath;
 
     @Override
-    public TicketDto createTicket(TicketDto ticketDto) {
+    public synchronized TicketDto createTicket(TicketDto ticketDto) {
         log.info("Creating ticket for event {} by user {}", ticketDto.getEventId(), ticketDto.getUserId());
 
         // Fetch user and event
@@ -64,11 +61,14 @@ public class TicketServiceImpl implements TicketService {
         Event event = eventRepository.findById(ticketDto.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + ticketDto.getEventId()));
 
-        // Check event capacity
-        long ticketsSold = ticketRepository.countByEventId(event.getId());
-        if (ticketsSold >= event.getCapacity()) {
+        // Check if event has available tickets
+        if (event.isSoldOut()) {
+            log.warn("Event {} is sold out. Capacity: {}, Tickets sold: {}",
+                    event.getName(), event.getCapacity(), event.getTickets().size());
             throw new RuntimeException("Tickets for this event are sold out!");
         }
+
+        log.info("Event {} has {} tickets available", event.getName(), event.getAvailableTickets());
 
         // Map to entity
         Ticket ticket = ticketMapper.toEntity(ticketDto);
@@ -85,23 +85,28 @@ public class TicketServiceImpl implements TicketService {
         // Generate QR code
         generateQRCode(savedTicket.getId());
 
+        log.info("Ticket created successfully. Remaining tickets: {}", event.getAvailableTickets());
+
         // Return mapped DTO
         return ticketMapper.toDto(savedTicket);
     }
 
     @Override
-    public TicketDto createTicketAfterPayment(TicketRequestDto request, String email) {
+    public synchronized TicketDto createTicketAfterPayment(TicketRequestDto request, String email) {
         log.info("Creating ticket after payment for event {}", request.getEventId());
 
         // Fetch event
         Event event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + request.getEventId()));
 
-        // Check event capacity
-        long ticketsSold = ticketRepository.countByEventId(event.getId());
-        if (ticketsSold >= event.getCapacity()) {
+        // Check if event has available tickets
+        if (event.isSoldOut()) {
+            log.error("Attempted to create ticket for sold out event: {}", event.getName());
             throw new RuntimeException("Tickets for this event are sold out!");
         }
+
+        log.info("Creating ticket. Event {} has {} tickets available out of {} capacity",
+                event.getName(), event.getAvailableTickets(), event.getCapacity());
 
         // Fetch user if userId is provided
         User user = null;
@@ -139,7 +144,8 @@ public class TicketServiceImpl implements TicketService {
         // Send ticket via email
         emailService.sendTicketEmail(email, savedTicket);
 
-        log.info("Ticket created successfully with number: {}", savedTicket.getTicketNumber());
+        log.info("Ticket created successfully with number: {}. Remaining tickets: {}",
+                savedTicket.getTicketNumber(), event.getAvailableTickets());
 
         return ticketMapper.toDto(savedTicket);
     }
@@ -180,6 +186,9 @@ public class TicketServiceImpl implements TicketService {
 
         List<Ticket> tickets = ticketRepository.findByEventId(eventId);
 
+        log.info("Event {} has {} tickets sold out of {} capacity",
+                event.getName(), tickets.size(), event.getCapacity());
+
         return tickets.stream()
                 .map(ticketMapper::toDto)
                 .toList();
@@ -192,9 +201,11 @@ public class TicketServiceImpl implements TicketService {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with ID: " + id));
 
+        Event event = ticket.getEvent();
         ticketRepository.delete(ticket);
 
-        log.info("Ticket {} deleted successfully", id);
+        log.info("Ticket {} deleted successfully. Event {} now has {} available tickets",
+                id, event.getName(), event.getAvailableTickets());
     }
 
     @Override

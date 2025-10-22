@@ -1,7 +1,5 @@
 package com.tritva.Evently.model.entity;
 
-import com.tritva.Evently.model.Role;
-import com.tritva.Evently.model.entity.Event;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -54,10 +52,14 @@ public class Event {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    /**
+     * Total capacity/seats for this event
+     */
     @Column(nullable = false)
     private int capacity;
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private Set<Ticket> tickets = new HashSet<>();
 
     @Column(nullable = false, updatable = false)
@@ -68,4 +70,30 @@ public class Event {
         createdAt = LocalDateTime.now();
     }
 
+    /**
+     * Calculate available tickets (capacity - tickets sold)
+     * @return number of available tickets
+     */
+    @Transient
+    public int getAvailableTickets() {
+        return capacity - tickets.size();
+    }
+
+    /**
+     * Check if tickets are available
+     * @return true if tickets are still available
+     */
+    @Transient
+    public boolean hasAvailableTickets() {
+        return getAvailableTickets() > 0;
+    }
+
+    /**
+     * Check if event is sold out
+     * @return true if no tickets available
+     */
+    @Transient
+    public boolean isSoldOut() {
+        return getAvailableTickets() <= 0;
+    }
 }
